@@ -9,15 +9,17 @@ from pathlib import Path
 BASE_DIR = Path(__file__).parent
 ENV_FILE = BASE_DIR / ".env"
 
-# 加载 .env 文件中的环境变量
-load_dotenv(dotenv_path=ENV_FILE)
+# 加载 .env 文件中的环境变量（如果存在）
+# 系统环境变量会优先于 .env 文件中的配置
+if ENV_FILE.exists():
+    load_dotenv(dotenv_path=ENV_FILE)
 
 # 邮件配置（从环境变量读取）
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "false").lower() == "true"
 EMAIL_FROM = os.getenv("EMAIL_FROM", "")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "QMhLkzvziqeVpJw9")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "XXX")
 EMAIL_TO = os.getenv("EMAIL_TO", "")
 
 
