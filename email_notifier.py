@@ -23,61 +23,113 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "XXX")
 EMAIL_TO = os.getenv("EMAIL_TO", "")
 
 
-def send_email_notification(papers, days=3):
+def send_email_notification(papers, days=3, translate=False):
     """发送论文通知邮件"""
     if not EMAIL_FROM or not EMAIL_PASSWORD or not EMAIL_TO:
         print("⚠️  邮件配置缺失，请设置环境变量：EMAIL_FROM, EMAIL_PASSWORD, EMAIL_TO")
         return False
 
     # 构建 HTML 邮件内容
-    html = """
-    <html>
-    <head>
-        <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
-            .header {{ background-color: #f4f4f4; padding: 20px; border-radius: 5px; }}
-            .paper {{ margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background-color: #fafafa; }}
-            .title {{ font-size: 16px; font-weight: bold; color: #333; }}
-            .meta {{ color: #666; font-size: 14px; margin: 5px 0; }}
-            .abstract {{ color: #444; font-size: 14px; margin: 10px 0; }}
-            .link {{ color: #007bff; text-decoration: none; }}
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h2>📚 Recent hep-ex Papers</h2>
-            <p>{count} papers found in the last {days} days</p>
-        </div>
-        {papers_html}
-    </body>
-    </html>
-    """
+    if translate:
+        html = """
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                .header {{ background-color: #f4f4f4; padding: 20px; border-radius: 5px; }}
+                .paper {{ margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background-color: #fafafa; }}
+                .title {{ font-size: 16px; font-weight: bold; color: #333; }}
+                .original-title {{ font-size: 14px; font-style: italic; color: #666; }}
+                .meta {{ color: #666; font-size: 14px; margin: 5px 0; }}
+                .abstract {{ color: #444; font-size: 14px; margin: 10px 0; }}
+                .original-abstract {{ color: #666; font-size: 13px; margin: 8px 0; }}
+                .link {{ color: #007bff; text-decoration: none; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>📚 最新 hep-ex 论文 [中英文对照]</h2>
+                <p>{count} 篇论文发表于最近 {days} 天</p>
+            </div>
+            {papers_html}
+        </body>
+        </html>
+        """
+    else:
+        html = """
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                .header {{ background-color: #f4f4f4; padding: 20px; border-radius: 5px; }}
+                .paper {{ margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background-color: #fafafa; }}
+                .title {{ font-size: 16px; font-weight: bold; color: #333; }}
+                .meta {{ color: #666; font-size: 14px; margin: 5px 0; }}
+                .abstract {{ color: #444; font-size: 14px; margin: 10px 0; }}
+                .link {{ color: #007bff; text-decoration: none; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>📚 Recent hep-ex Papers</h2>
+                <p>{count} papers found in the last {days} days</p>
+            </div>
+            {papers_html}
+        </body>
+        </html>
+        """
 
     papers_html = ""
     for i, p in enumerate(papers, 1):
         pub_date = p['published'].replace("T", " ").replace("Z", "")
-        papers_html += f"""
-        <div class="paper">
-            <div class="title">[{i}] {p['title']}</div>
-            <div class="meta">📅 {pub_date}</div>
-            <div class="meta">👤 {', '.join(p['authors'])}</div>
-            <div class="abstract">📝 {p['summary']}...</div>
-            <a class="link" href="{p['link']}">🔗 View Paper</a>
-        </div>
-        """
+
+        # Format authors - show only first few and indicate if there are more
+        author_list = p['authors']
+        if len(author_list) > 5:
+            authors_display = ', '.join(author_list[:5]) + f', ... and {len(author_list)-5} more authors'
+        else:
+            authors_display = ', '.join(author_list)
+
+        if translate and 'translated_summary' in p:
+            # Include both translated and original content
+            papers_html += f"""
+            <div class="paper">
+                <div class="title">[{i}] {p['translated_title']}</div>
+                <div class="original-title">Original Title: {p['title']}</div>
+                <div class="meta">📅 {pub_date}</div>
+                <div class="meta">👤 {authors_display}</div>
+                <div class="abstract">📝 Abstract (中文): {p['translated_summary']}</div>
+                <div class="original-abstract">📝 Abstract (English): {p['summary']}</div>
+                <a class="link" href="{p['link']}">🔗 View Paper</a>
+            </div>
+            """
+        else:
+            papers_html += f"""
+            <div class="paper">
+                <div class="title">[{i}] {p['title']}</div>
+                <div class="meta">📅 {pub_date}</div>
+                <div class="meta">👤 {authors_display}</div>
+                <div class="abstract">📝 {p['summary']}</div>
+                <a class="link" href="{p['link']}">🔗 View Paper</a>
+            </div>
+            """
 
     html_content = html.format(count=len(papers), days=days, papers_html=papers_html)
 
     msg = MIMEMultipart()
+    if translate:
+        msg['Subject'] = f"📚 {len(papers)} 新的 hep-ex 论文 (最近 {days} 天) [中英文对照]"
+    else:
+        msg['Subject'] = f"📚 {len(papers)} New hep-ex Papers (Last {days} Days)"
+
     msg['From'] = EMAIL_FROM
     msg['To'] = EMAIL_TO
-    msg['Subject'] = f"📚 {len(papers)} New hep-ex Papers (Last {days} Days)"
 
     msg.attach(MIMEText(html_content, 'html'))
 
     try:
         print(f"正在连接 {SMTP_SERVER}:{SMTP_PORT}...")
-        
+
         # 根据端口选择 SSL 或 STARTTLS
         if SMTP_PORT == 465 or SMTP_USE_SSL:
             # SSL 连接（如 163 邮箱 465 端口）
@@ -88,7 +140,7 @@ def send_email_notification(papers, days=3):
             server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
             server.starttls()
             print(f"使用 STARTTLS 连接...")
-        
+
         server.set_debuglevel(0)  # 关闭调试模式
         print(f"正在登录 {EMAIL_FROM}...")
         server.login(EMAIL_FROM, EMAIL_PASSWORD)

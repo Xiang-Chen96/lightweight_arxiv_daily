@@ -88,6 +88,7 @@ EMAIL_PASSWORD=your_app_password  # 应用专用密码
 | `--days` | 搜索过去几天的论文 | 3 |
 | `--max-results` | 最大结果数量 | 100 |
 | `--email` | 发送邮件通知 | false |
+| `--translate` | 启用英文到中文翻译 | false |
 
 ## 项目结构
 
