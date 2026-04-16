@@ -9,7 +9,7 @@ on:
       days:
         description: 'Number of days to search back'
         required: false
-        default: '3'
+        default: '1'
       email:
         description: 'Send email notification (true/false)'
         required: false
